@@ -1,0 +1,59 @@
+[package]
+name = "fountain_operators"
+version = "1.0.0"
+edition = "2024"
+authors = ["Shenghao Yang"]
+license = "MIT"
+description = "High-performance DataOperator implementations for fountain codes"
+repository = "https://github.com/shhyang/fountain_operators"
+documentation = "https://shhyang.github.io/fountain_docs/"
+readme = "README.md"
+keywords = ["fountain-code", "erasure-coding", "data-operator"]
+categories = ["algorithms", "encoding"]
+exclude = ["bench_data/ref_baselines/"]
+
+[features]
+default = ["tooling"]
+## Trace/replay/testing/bench-report utilities.
+tooling = []
+## Criterion benchmarks (phase 4).
+bench = ["dep:criterion", "tooling"]
+## AVX2 kernels (phase 3a); falls back to portable when unavailable.
+simd = ["dep:cpufeatures"]
+## Optional throughput vs external raptorq in `kernel_micro` (requires local `ref/raptorq` checkout).
+compare-refs = []
+
+[dependencies]
+fountain_engine = "1.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+criterion = { version = "0.5", features = ["html_reports"], optional = true }
+rand = "0.8.5"
+cpufeatures = { version = "0.2", optional = true }
+
+[dev-dependencies]
+fountain_utility = "1.2"
+fountain_scheme = "1.2"
+
+[[bench]]
+name = "operator_replay"
+harness = false
+required-features = ["bench"]
+
+[[bench]]
+name = "e2e_encode_decode"
+harness = false
+required-features = ["bench"]
+
+[[bench]]
+name = "kernel_micro"
+harness = false
+required-features = ["bench"]
+
+[[example]]
+name = "capture_traces"
+required-features = []
+
+[[example]]
+name = "operators_benchmark"
+required-features = []
