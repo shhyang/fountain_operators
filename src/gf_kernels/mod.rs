@@ -120,22 +120,19 @@ pub fn selected_kernel_kind() -> KernelKind {
 /// Reports all kernels available for this target build.
 #[must_use]
 pub fn available_kernel_kinds() -> Vec<KernelKind> {
-    let mut out = vec![KernelKind::Portable];
-    #[cfg(all(
+    if cfg!(all(
         feature = "simd",
         any(target_arch = "x86", target_arch = "x86_64")
-    ))]
-    {
-        out.push(KernelKind::Avx2);
-    }
-    #[cfg(all(
+    )) {
+        vec![KernelKind::Portable, KernelKind::Avx2]
+    } else if cfg!(all(
         feature = "simd",
         any(target_arch = "aarch64", target_arch = "arm")
-    ))]
-    {
-        out.push(KernelKind::Neon);
+    )) {
+        vec![KernelKind::Portable, KernelKind::Neon]
+    } else {
+        vec![KernelKind::Portable]
     }
-    out
 }
 
 #[cfg(test)]

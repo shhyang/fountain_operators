@@ -1,30 +1,22 @@
 # fountain_operators
 
-High-performance [`DataOperator`](https://docs.rs/fountain_engine/1.3.0/fountain_engine/traits/trait.DataOperator.html) implementations for [fountain_engine](https://crates.io/crates/fountain_engine) **1.3+**.
+High-performance [`DataOperator`](https://docs.rs/fountain_engine/latest/fountain_engine/traits/trait.DataOperator.html) implementations for the Fountain Engine.
 
-Provides slab-backed and SIMD-accelerated operators, portable GF(256) block kernels, operation replay, and testing helpers for fountain code encode/decode pipelines.
+## Status
 
-Project docs: [fountain_docs](https://shhyang.github.io/fountain_docs/) · Operator guide: [doc-operators.pdf](https://shhyang.github.io/fountain_docs/docs/doc-operators.pdf)
+| Phase | Component | Status |
+|-------|-----------|--------|
+| 1 | `gf_kernels` (portable), `replay`, `operator_testing` | **Done** |
+| 2 | `SlabStorage`, `SlabDataOperator` | **Done** |
+| 2b | Scheme roundtrip + delayed replay tests | **Done** |
+| 3a | `SimdDataOperator`, AVX2 `gf_kernels` (`simd` feature) | **Done** |
+| 3b | NEON `gf_kernels` on aarch64/arm (`simd` feature) | **Done** |
+| 4 | Traces, Criterion benches, JSONL report | **Done** |
+| 5 | Agent skill, doc polish | **Done** |
 
-## Components
-
-| Module | Role |
-|--------|------|
-| `gf_kernels` | Portable, AVX2, and NEON GF(256) XOR / multiply kernels |
-| `SlabDataOperator` | Slab-allocated in-memory operator |
-| `SimdDataOperator` | Slab operator with runtime kernel dispatch (`simd` feature) |
-| `replay` | Replay delayed encoder operation logs |
-| `operator_testing` | Differential testing against reference operators |
-| `trace_format` | JSON trace capture for benchmarks |
+See [docs/plans/data_operators_dev.md](../docs/plans/data_operators_dev.md) (milestones) and [docs/doc-operators.org](../docs/doc-operators.org) (user guide).
 
 ## Usage
-
-Add to `Cargo.toml`:
-
-```toml
-fountain_engine = "1.3"
-fountain_operators = { version = "1.0", features = ["simd"] }
-```
 
 ```rust
 use fountain_engine::traits::DataOperator;
@@ -43,36 +35,36 @@ kernel.xor_inplace(&mut dst, &[4, 5, 6]);
 ## Testing
 
 ```bash
-cargo test
-cargo test --features simd
+cargo test -p fountain_operators
+cargo test -p fountain_operators --features simd
 ```
 
 Differential tests compare `SlabDataOperator` / `SimdDataOperator` against `VecDataOperater` on the same random operation stream (GF2 and GF256).
 
-## Benchmarks
+## Benchmarks (phase 4)
 
 ```bash
-# Regenerate committed traces (requires dev-deps: fountain_scheme, fountain_utility)
-cargo run --example capture_traces --release
+# Regenerate committed traces (optional: --features raptor_q)
+cargo run -p fountain_operators --example capture_traces --release
 
 # Criterion (Layer 1–2)
-cargo bench --features bench
+cargo bench -p fountain_operators --features bench
 
 # JSONL report (Layer 2: replay_wall_ms + e2e_wall_ms)
-cargo run --example operators_benchmark --release
+cargo run -p fountain_operators --example operators_benchmark --release
 
 # Full local workflow
-./scripts/compare_operators.sh
+./fountain_operators/scripts/compare_operators.sh
 ```
 
 Traces live in `bench_data/traces/`. Layer 1 replays **encoder** ops (precoding + encoding) from the delayed `Encoder::new` log.
 
 ## Features
 
-- `tooling` (default) — replay, trace format, operator/scheme testing helpers
 - `simd` — `select_kernel()`: **AVX2** on x86_64 (Haswell+), **NEON** on aarch64/arm; portable fallback otherwise
 - `bench` — Criterion targets `operator_replay`, `e2e_encode_decode`, `kernel_micro`
-- `compare-refs` — optional throughput vs external raptorq in `kernel_micro` (local checkout only; not required for normal use)
+- `compare-refs` — optional throughput vs `ref/raptorq` in `kernel_micro` (requires `ref/raptorq` checkout)
+- `raptor_q` — `capture_traces` example also writes a RaptorQ trace
 
 ### SIMD platform support (`--features simd`)
 
@@ -82,8 +74,9 @@ Traces live in `bench_data/traces/`. Layer 1 replays **encoder** ops (precoding 
 | `aarch64` / `arm` | NEON | 16-byte NEON XOR / `vqtbl1q` mul |
 | Other / feature off | — | Portable scalar |
 
-LUTs are built from session [`GF256`](https://docs.rs/fountain_engine/1.3.0/fountain_engine/algebra/finite_field/struct.GF256.html) (`mul_lookup`). `default_kernel()` is always portable; `SimdDataOperator` uses `select_kernel()`.
+LUTs are built from session [`GF256`](fountain_engine) (`mul_lookup`), not raptorq `Octet` tables.
+`default_kernel()` is always portable; `SimdDataOperator` uses `select_kernel()`.
 
 ## License
 
-MIT — see [LICENSE-MIT](LICENSE-MIT).
+MIT

@@ -34,7 +34,7 @@ pub fn neon_available() -> bool {
     ))]
     {
         cpufeatures::new!(has_neon, "neon");
-        return has_neon::get();
+        has_neon::get()
     }
     #[cfg(not(all(
         feature = "simd",
