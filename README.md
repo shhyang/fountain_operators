@@ -77,6 +77,36 @@ Traces live in `bench_data/traces/`. Layer 1 replays **encoder** ops (precoding 
 LUTs are built from session [`GF256`](fountain_engine) (`mul_lookup`), not raptorq `Octet` tables.
 `default_kernel()` is always portable; `SimdDataOperator` uses `select_kernel()`.
 
+## End-to-end examples (Raptor crates)
+
+The published Raptor scheme crates ship **performance examples** that exercise `SlabDataOperator` and `SimdDataOperator` alongside `fountain_utility::VecDataOperater`. They use [`real_symbol_benchmark`](https://docs.rs/fountain_utility/latest/fountain_utility/) to compare on-the-fly vs deferred encode/decode wall times at realistic symbol sizes.
+
+Add this crate as a **dev-dependency** (Git; not on Crates.io):
+
+```toml
+[dev-dependencies]
+fountain_operators = { git = "https://github.com/shhyang/fountain_operators", features = ["simd"] }
+```
+
+Then run from a checkout of the Raptor crate:
+
+| Example | Crate | What it benchmarks |
+|---------|-------|-------------------|
+| [`raptor_q_performance`](https://github.com/wutongabc/fountain_raptor_q/blob/main/examples/raptor_q_performance.rs) | [`fountain_raptor_q`](https://github.com/wutongabc/fountain_raptor_q) | RFC 6330 RaptorQ; padded codec @ K = 5008; symbol sizes 128 and 1500 |
+| [`raptor_10_performance`](https://github.com/wutongabc/fountain_raptor_10/blob/main/examples/raptor_10_performance.rs) | [`fountain_raptor_10`](https://github.com/wutongabc/fountain_raptor_10) | RFC 5053 Raptor-10; systematic codec @ k = 5000; symbol sizes 128 and 1500 |
+
+```bash
+# RaptorQ (clone fountain_raptor_q, then from its root)
+cargo run --example raptor_q_performance --release
+
+# Raptor-10 (clone fountain_raptor_10, then from its root)
+cargo run --example raptor_10_performance --release
+```
+
+Each example builds operator factories for `VecDataOperater`, `SlabDataOperator`, and `SimdDataOperator`, then prints a comparison table via `print_real_symbol_benchmark_table`. See the example sources for `OperatorFactory` wiring and `RealSymbolBenchConfig` setup.
+
+**Note:** These crates depend on `fountain_engine` **1.3.1+**, `fountain_utility` **1.3.0+**, and the matching scheme crate on Crates.io. The operators crate remains **experimental**; API may change.
+
 ## License
 
 MIT
